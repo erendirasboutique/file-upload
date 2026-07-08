@@ -30,12 +30,11 @@ export default function FileViewer({ params }: { params: { key: string[] } }) {
         {isPdf ? (
           <iframe src={fileUrl} title={name} className="w-full h-[80vh]" />
         ) : isImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={fileUrl} alt={name} className="w-full h-auto" />
         ) : (
           <div className="p-12 text-center">
             <p className="text-ink/60 mb-4">
-              This file type can&rsquo;t be previewed in the browser.
+              This file type cannot be previewed in the browser.
             </p>
             
               href={fileUrl}
