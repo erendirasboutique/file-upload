@@ -6,19 +6,19 @@
    If the files aren't present, the app gracefully falls back to Georgia. */
 @font-face {
   font-family: "La Luxes Serif";
-  src: url("/fonts/LaLuxesSerif.woff2") format("woff2");
+  src: url("/fonts/la-luxes-serif.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
   font-family: "Recoleta";
-  src: url("/fonts/Recoleta-Regular.woff2") format("woff2");
+  src: url("/fonts/recoleta-regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
   font-family: "Recoleta";
-  src: url("/fonts/Recoleta-Medium.woff2") format("woff2");
+  src: url("/fonts/recoleta-regular.woff2") format("woff2");
   font-weight: 500;
   font-display: swap;
 }
