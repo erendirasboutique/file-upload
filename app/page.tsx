@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Confetti from "./components/Confetti";
 
 type Upload = {
   name: string;
@@ -24,6 +25,7 @@ export default function UploadPage() {
   const [recent, setRecent] = useState<RecentFile[]>([]);
   const [dragging, setDragging] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -45,6 +47,13 @@ export default function UploadPage() {
 
   function updateUpload(name: string, patch: Partial<Upload>) {
     setUploads((prev) => prev.map((u) => (u.name === name ? { ...u, ...patch } : u)));
+  }
+
+  function fireConfetti() {
+    setCelebrate(false);
+    // restart the animation even if it just ran
+    requestAnimationFrame(() => setCelebrate(true));
+    setTimeout(() => setCelebrate(false), 4000);
   }
 
   async function uploadFile(file: File) {
@@ -70,12 +79,11 @@ export default function UploadPage() {
       }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Couldn't get an upload link.");
+        throw new Error(data.error || "Could not get an upload link.");
       }
 
       const { uploadUrl, viewPath } = await res.json();
 
-      // Upload directly to R2 with progress via XHR
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl);
@@ -89,12 +97,13 @@ export default function UploadPage() {
           xhr.status >= 200 && xhr.status < 300
             ? resolve()
             : reject(new Error(`Upload failed (${xhr.status})`));
-        xhr.onerror = () => reject(new Error("Upload failed — check your connection."));
+        xhr.onerror = () => reject(new Error("Upload failed. Check your connection."));
         xhr.send(file);
       });
 
       const link = `${window.location.origin}${viewPath}`;
       updateUpload(file.name, { status: "done", progress: 100, link });
+      fireConfetti();
       loadRecent();
     } catch (err) {
       updateUpload(file.name, {
@@ -117,6 +126,8 @@ export default function UploadPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {celebrate && <Confetti />}
+
       <h1 className="font-display text-3xl text-taupe mb-6">Share a file</h1>
 
       {/* Drop zone */}
@@ -132,9 +143,23 @@ export default function UploadPage() {
           handleFiles(e.dataTransfer.files);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`cursor-pointer rounded-[2rem] border-2 border-dashed p-12 text-center transition
-          ${dragging ? "border-taupe bg-sand/30" : "border-sand bg-white hover:bg-sand/10"}`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
+        className={`cursor-pointer rounded-[2rem] border-2 border-dashed p-12 text-center transition-all duration-300
+          ${
+            dragging
+              ? "border-taupe bg-sand/40 scale-[1.02] shadow-lg shadow-sand/40"
+              : "border-sand bg-white hover:border-taupe/60 hover:bg-sand/10 hover:shadow-md hover:shadow-sand/30"
+          }`}
       >
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sand/40 text-taupe transition-transform duration-300 group-hover:scale-110">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 16V4" />
+            <path d="m7 9 5-5 5 5" />
+            <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+          </svg>
+        </div>
         <p className="font-display text-xl text-taupe">Drop a PDF or image here</p>
         <p className="text-sm text-ink/50 mt-2">or click to choose a file · up to 100 MB</p>
         <input
@@ -150,16 +175,26 @@ export default function UploadPage() {
       {uploads.length > 0 && (
         <div className="mt-6 space-y-3">
           {uploads.map((u) => (
-            <div key={u.name} className="bg-white rounded-[2rem] px-6 py-4">
+            <div
+              key={u.name}
+              className={`bg-white rounded-[2rem] px-6 py-4 transition-all duration-300 ${
+                u.status === "done" ? "ring-1 ring-sand" : ""
+              }`}
+            >
+              {u.status === "done" && (
+                <p className="text-sm font-medium text-taupe mb-1">
+                  Uploaded! Your link is ready to share.
+                </p>
+              )}
               <div className="flex items-center justify-between gap-4">
                 <span className="truncate text-sm">{u.name}</span>
                 {u.status === "uploading" && (
-                  <span className="text-sm text-taupe shrink-0">{u.progress}%</span>
+                  <span className="text-sm text-taupe shrink-0 tabular-nums">{u.progress}%</span>
                 )}
                 {u.status === "done" && u.link && (
                   <button
                     onClick={() => copyLink(u.link!)}
-                    className="shrink-0 rounded-full bg-taupe text-cream text-sm px-4 py-1.5 hover:bg-taupe/90 transition"
+                    className="shrink-0 rounded-full bg-taupe text-cream text-sm px-4 py-1.5 transition-all duration-200 hover:bg-ink hover:shadow-md active:scale-95"
                   >
                     {copied === u.link ? "Copied!" : "Copy link"}
                   </button>
@@ -177,13 +212,7 @@ export default function UploadPage() {
                 </div>
               )}
               {u.status === "done" && u.link && (
-                <a
-                  href={u.link}
-                  target="_blank"
-                  className="block mt-1 text-xs text-taupe/80 truncate hover:underline"
-                >
-                  {u.link}
-                </a>
+                <p className="mt-1 text-xs text-taupe/80 truncate">{u.link}</p>
               )}
             </div>
           ))}
@@ -196,19 +225,22 @@ export default function UploadPage() {
           <h2 className="font-display text-xl text-taupe mb-3">Recent files</h2>
           <div className="bg-white rounded-[2rem] divide-y divide-cream overflow-hidden">
             {recent.map((f) => (
-              <div key={f.key} className="flex items-center justify-between gap-4 px-6 py-3">
-                <a
-                  href={`/f/${f.key}`}
-                  target="_blank"
-                  className="truncate text-sm hover:text-taupe transition"
-                >
-                  {f.name}
-                </a>
+              <div
+                key={f.key}
+                className="flex items-center justify-between gap-4 px-6 py-3 transition-colors hover:bg-sand/10"
+              >
+                <span className="truncate text-sm">{f.name}</span>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs text-ink/40">{formatSize(f.size)}</span>
                   <button
+                    onClick={() => window.open(`/f/${f.key}`, "_blank")}
+                    className="rounded-full border border-sand text-xs px-3 py-1 transition-all duration-200 hover:bg-taupe hover:text-cream hover:border-taupe active:scale-95"
+                  >
+                    Open
+                  </button>
+                  <button
                     onClick={() => copyLink(`${window.location.origin}/f/${f.key}`)}
-                    className="rounded-full border border-sand text-xs px-3 py-1 hover:bg-sand/20 transition"
+                    className="rounded-full border border-sand text-xs px-3 py-1 transition-all duration-200 hover:bg-taupe hover:text-cream hover:border-taupe active:scale-95"
                   >
                     {copied === `${window.location.origin}/f/${f.key}` ? "Copied!" : "Copy link"}
                   </button>
