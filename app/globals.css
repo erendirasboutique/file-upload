@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Copy your La Luxes Serif + Recoleta font files into /public/fonts.
+   If the files aren't present, the app gracefully falls back to Georgia. */
+@font-face {
+  font-family: "La Luxes Serif";
+  src: url("/fonts/LaLuxesSerif.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Recoleta";
+  src: url("/fonts/Recoleta-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Recoleta";
+  src: url("/fonts/Recoleta-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+body {
+  @apply bg-cream text-ink font-body antialiased;
+}
